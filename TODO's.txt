@@ -17,6 +17,7 @@ functions to implement:
 [-]tpDestroy
 [-]tpCreate
 
+----------------------------------------
 additions to struct thread_pool:
 [-]tasks queue
 [-]lock for tasks queue (probably mutex)
