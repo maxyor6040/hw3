@@ -1,0 +1,31 @@
+========================================
+Components:
+----------------------------------------
+1.tasks 
+[-]enqueue task (need to lock queue)
+[-]dequeue task (should be done by a free thread that got the lock)
+
+----------------------------------------
+2.thread
+[-]if no tasks wait for new task (probably condition variable)
+[-]else - TRY TO take the task and do it (need to lock queue but we might get 
+into a deadlock here so only try and if unable than wait for condition variable)
+
+----------------------------------------
+functions to implement:
+[-]tpInsertTask
+[-]tpDestroy
+[-]tpCreate
+
+additions to struct thread_pool:
+[-]tasks queue
+[-]lock for tasks queue (probably mutex)
+[-]a way to indicate/signal that undone tasks exist (probably condition variable)
+
+
+========================================
+notes:
+[-]need to add "#include <pthread.h>" probably to threadPool.h
+[-]maby we also need to add "#include <semaphore.h>" to threadPool.h
+
+*remember to compile with "–lpthread"
