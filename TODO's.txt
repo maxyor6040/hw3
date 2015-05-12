@@ -1,32 +1,66 @@
+~~~if TODO is done set [-] to [+]~~~
 ========================================
 Components:
 ----------------------------------------
-1.tasks 
-[-]enqueue task (need to lock queue)
-[-]dequeue task (should be done by a free thread that got the lock)
+1.thread
+[-]get and execute task function
+	[-]lock queue
+	[-]while no tasks wait for new task (condition variable)
+	[-]dqueue task
+	[-]if this was the only task in the queue update condition variable accordingly
+	[-]unlock queue
+	[-]execute task
+[-]implement a function that all thread will execute (that would get and execute tasks forever)
+[-]implement a "self destruct" fuction that would be queued to the tasks 
+queue "number_of_threads" times when "tpDestroy" is invoked and would call "exit(0)" 
 
 ----------------------------------------
-2.thread
-[-]if no tasks wait for new task (probably condition variable)
-[-]else - TRY TO take the task and do it (need to lock queue but we might get 
-into a deadlock here so only try and if unable than wait for condition variable)
-
-----------------------------------------
-functions to implement:
+2.functions to implement:
 [-]tpInsertTask
-[-]tpDestroy
+	[-]if "tpDestroy was invoked" return -1
+	[-]lock queue
+	[-]enqueue new task
+	[-]cond_signal - wake up one thread to take care of the task
+	[-]unlock queue
+	[-]return 0
+[-]tpDestroy:
+	[-]if "tpDestroy was invoked" return //optional
+	[-]try to lock destroy-mutex. if unable return
+	[-]set indicator of "tpDestroy was invoked" to true
+	_______________________________
+	|if shouldWaitForTasks
+	|[-]wait for the task queue to be empty(how?)
+	|[-]lock queue
+	|______________________________
+	_______________________________
+	|else (if should NOT WaitForTasks)
+	|[-]lock queue
+	|[-]dqueue all items
+	|______________________________
+	[-]enqueue "self destruct" fuction X number of threads
+	[-]wait for all tasks to be done(how?)
+	[-]free all allocated memory
+	[-]unlock destroy-mutex
 [-]tpCreate
+	[-]allocate memory
+	[-]update struct fields
+		[-]create an empty queue
+		[-]initialize all the locks and condition varibles
+		[-]other stuff...
+	[-]create all the threads and set them to run the function all threads execute
+	[-]return a pointer to the struct
 
 ----------------------------------------
 additions to struct thread_pool:
 [-]tasks queue
 [-]lock for tasks queue (probably mutex)
 [-]a way to indicate/signal that undone tasks exist (probably condition variable)
-
+[-]indictaor to know if tpDestroy was invoked
+[-]int number of requested threads
+[-]lock for tpDestroy to be invoked only once (mutex)
 
 ========================================
 notes:
 [-]need to add "#include <pthread.h>" probably to threadPool.h
-[-]maby we also need to add "#include <semaphore.h>" to threadPool.h
 
 *remember to compile with "–lpthread"
