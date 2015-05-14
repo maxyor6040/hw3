@@ -34,6 +34,8 @@ void* getAndExecuteTasksForever(void* voidPtrTP){
         }
         FuncAndParam FAP = (FuncAndParam)(*FAPAddress);
         FAP.function(FAP.param);
+        free(FAPAddress);
+
     }
 
 }
@@ -95,8 +97,21 @@ int tpInsertTask(ThreadPool *tp, void (*computeFunc)(void *), void *param){
     }
     if(pthread_mutex_lock(&(tp->mutex_taskQueue_lock))){//ERROORRRREE
         printf("bug13");
-        return;
+        return -1;//TODO think about this
     }
     FuncAndParam* fap = malloc(sizeof(*fap));
-
+    fap->function = computeFunc;
+    fap->param = param;
+    osEnqueue(tp->taskQueue, (*void)fap);
+    if(pthread_cond_signal(&(tp->cond_taskQueueNotEmpty)){//ERROORRRREE
+        printf("bug14");
+        return -1;//TODO think about this
+    }
+    if(pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))){//ERROORRRREE
+        printf("bug15");
+        return -1;//TODO think about this
+    }
+    return 0;
 }
+
+

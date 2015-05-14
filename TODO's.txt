@@ -19,13 +19,13 @@ queue "number_of_threads" times when "tpDestroy" is invoked and would call "exit
 (this struct would be a member in the task queue)
 ----------------------------------------
 3.functions to implement:
-[-]tpInsertTask (NOTE: we need to make sure this function is thread-safe)
-	[-]if "tpDestroy was invoked" return -1
-	[-]lock queue
-	[-]enqueue new task
-	[-]cond_signal - wake up one thread to take care of the task
-	[-]unlock queue
-	[-]return 0
+[+]tpInsertTask (NOTE: we need to make sure this function is thread-safe)
+	[+]if "tpDestroy was invoked" return -1
+	[+]lock queue
+	[+]enqueue new task
+	[+]cond_signal - wake up one thread to take care of the task
+	[+]unlock queue
+	[+]return 0
 [-]tpDestroy:
 	[-]if "tpDestroy was invoked" return //optional
 	[-]try to lock destroy-mutex. if unable return
@@ -75,3 +75,10 @@ tpCreate
 	tp
 tpInsertTask
 	fap
+	
+free's:
+selfDestruct
+	fap
+getAndExecuteTasksForever
+	fap		***(also need to free in tpDestroy)
+
