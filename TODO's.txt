@@ -15,7 +15,10 @@ Components:
 queue "number_of_threads" times when "tpDestroy" is invoked and would call "exit(0)" 
 
 ----------------------------------------
-2.functions to implement:
+2.task:
+[-]implement a struct that would contain a pointer to a function and a the argument to the function (this struct would be a member in the task queue)
+----------------------------------------
+3.functions to implement:
 [-]tpInsertTask
 	[-]if "tpDestroy was invoked" return -1
 	[-]lock queue

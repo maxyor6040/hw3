@@ -21,7 +21,7 @@ void *osDestroyQueue(OSQueue *q) {
     free(q);
 }
 
-int osIsEmpty(OSQueue *q) {
+int osIsQueueEmpty(OSQueue *q) {
     return (q->tail == NULL && q->head == NULL);
 }
 
