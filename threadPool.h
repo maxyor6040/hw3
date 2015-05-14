@@ -6,7 +6,7 @@
 
 typedef struct thread_pool {
     //region wet3 max
-    OSQueue taskQueue;
+    OSQueue* taskQueue;
     pthread_mutex_t mutex_taskQueue_lock;
     pthread_cond_t cond_taskQueueNotEmpty;
     int numOfThreads;

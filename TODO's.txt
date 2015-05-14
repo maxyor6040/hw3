@@ -45,14 +45,14 @@ queue "number_of_threads" times when "tpDestroy" is invoked and would call "exit
 	[-]wait for all tasks to be done(how?)
 	[-]free all allocated memory
 	[-]unlock destroy-mutex//think about this
-[-]tpCreate
-	[-]allocate memory
-	[-]update struct fields
-		[-]create an empty queue
-		[-]initialize all the locks and condition variables
-		[-]other stuff...
-	[-]create all the threads and set them to run the function all threads execute
-	[-]return a pointer to the struct
+[+]tpCreate
+	[+]allocate memory
+	[+]update struct fields
+		[+]create an empty queue
+		[+]initialize all the locks and condition variables
+		[+]other stuff...
+	[+]create all the threads and set them to run the function all threads execute
+	[+]return a pointer to the struct
 
 ----------------------------------------
 additions to struct thread_pool:
@@ -68,3 +68,10 @@ notes:
 [+]need to add "#include <pthread.h>" probably to threadPool.h
 
 *remember to compile with "–lpthread"
+
+========================================
+malloc's:
+tpCreate 
+	tp
+tpInsertTask
+	fap
