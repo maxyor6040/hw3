@@ -12,7 +12,7 @@ OSQueue *osCreateQueue() {
     return q;
 }
 
-void *osDestroyQueue(OSQueue *q) {
+void osDestroyQueue(OSQueue *q) {
     if (q == NULL)
         return;
 
