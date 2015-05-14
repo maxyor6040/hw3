@@ -6,17 +6,18 @@ Components:
 [-]get and execute task function
 	[-]lock queue
 	[-]while no tasks wait for new task (condition variable)
-	[-]dqueue task
+	[-]dequeue task
 	[-]if this was the only task in the queue update condition variable accordingly
 	[-]unlock queue
 	[-]execute task
 [-]implement a function that all thread will execute (that would get and execute tasks forever)
-[-]implement a "self destruct" fuction that would be queued to the tasks 
+[-]implement a "self destruct" function that would be queued to the tasks 
 queue "number_of_threads" times when "tpDestroy" is invoked and would call "exit(0)" 
 
 ----------------------------------------
 2.task:
-[-]implement a struct that would contain a pointer to a function and a the argument to the function (this struct would be a member in the task queue)
+[-]implement a struct that would contain a pointer to a function and a the argument to the function 
+(this struct would be a member in the task queue)
 ----------------------------------------
 3.functions to implement:
 [-]tpInsertTask (NOTE: we need to make sure this function is thread-safe)
@@ -38,9 +39,9 @@ queue "number_of_threads" times when "tpDestroy" is invoked and would call "exit
 	_______________________________
 	|else (if should NOT WaitForTasks)
 	|[-]lock queue
-	|[-]dqueue all items
+	|[-]dequeue all items
 	|______________________________
-	[-]enqueue "self destruct" fuction X number of threads
+	[-]enqueue "self destruct" function X number of threads
 	[-]wait for all tasks to be done(how?)
 	[-]free all allocated memory
 	[-]unlock destroy-mutex
@@ -48,7 +49,7 @@ queue "number_of_threads" times when "tpDestroy" is invoked and would call "exit
 	[-]allocate memory
 	[-]update struct fields
 		[-]create an empty queue
-		[-]initialize all the locks and condition varibles
+		[-]initialize all the locks and condition variables
 		[-]other stuff...
 	[-]create all the threads and set them to run the function all threads execute
 	[-]return a pointer to the struct
@@ -58,7 +59,7 @@ additions to struct thread_pool:
 [-]tasks queue
 [-]lock for tasks queue (probably mutex)
 [-]a way to indicate/signal that undone tasks exist (probably condition variable)
-[-]indictaor to know if tpDestroy was invoked
+[-]indicator to know if tpDestroy was invoked
 [-]int number of requested threads
 [-]lock for tpDestroy to be invoked only once (mutex)
 
