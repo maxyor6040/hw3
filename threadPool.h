@@ -1,11 +1,18 @@
 #ifndef __THREAD_POOL__
 #define __THREAD_POOL__
 
+#include "osqueue.h"
+#include <pthread.h>
+
 typedef struct thread_pool {
-    //The field x is here because a struct without fields
-    //doesn't compile. Remove it once you add fields of your own
-    int x;
-    //TODO - FILL THIS WITH YOUR FIELDS
+    //region wet3 max
+    OSQueue taskQueue;
+    pthread_mutex_t mutex_taskQueue_lock;
+    pthread_cond_t cond_taskQueueNotEmpty;
+    int numOfThreads;
+    bool tpDestroyInvoked;
+    pthread_mutex_t mutex_Destructor;
+    //endregion
 } ThreadPool;
 
 ThreadPool *tpCreate(int numOfThreads);
