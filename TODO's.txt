@@ -19,7 +19,7 @@ queue "number_of_threads" times when "tpDestroy" is invoked and would call "exit
 [-]implement a struct that would contain a pointer to a function and a the argument to the function (this struct would be a member in the task queue)
 ----------------------------------------
 3.functions to implement:
-[-]tpInsertTask
+[-]tpInsertTask (NOTE: we need to make sure this function is thread-safe)
 	[-]if "tpDestroy was invoked" return -1
 	[-]lock queue
 	[-]enqueue new task
