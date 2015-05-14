@@ -1,5 +1,7 @@
 //wet3 - entire file
 #include "threadPool.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 typedef void (*funcPtr)(void *);
 
@@ -11,29 +13,29 @@ typedef struct funcAndParam {
 //task queue's member would be a pointer to this struct
 //call would look like that: " function(param); "
 
-void selfDestruct(void *) {
+void selfDestruct(void* x) {
     pthread_exit(NULL);
 }
 
-void *getAndExecuteTasksForever(void *voidPtrTP) {
+void* getAndExecuteTasksForever(void *voidPtrTP) {
     ThreadPool *tp = (ThreadPool *) voidPtrTP;
     while (1) {
         if (pthread_mutex_lock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
             printf("bug1");
-            return;
+            return NULL;
         }
         while (osIsQueueEmpty(tp->taskQueue)) {
             if (pthread_cond_wait(&(tp->cond_taskQueueNotEmpty), &(tp->mutex_taskQueue_lock))) {//ERROORRRREE
                 printf("bug2");
-                return;
+                return NULL;
             }
         }
         void *FAPAddress = (osDequeue(tp->taskQueue));
         if (pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
             printf("bug3");
-            return;
+            return NULL;
         }
-        FuncAndParam FAP = (FuncAndParam) (*FAPAddress);
+        FuncAndParam FAP = *((FuncAndParam*)FAPAddress);
         FAP.function(FAP.param);
         free(FAPAddress);
 
@@ -47,14 +49,14 @@ ThreadPool *tpCreate(int numOfThreads) {
         printf("bug4");
         return NULL;
     }
-    ThreadPool *tp = malloc(sizeof(*ThreadPool));
+    ThreadPool *tp = malloc(sizeof(*tp));
     tp->taskQueue = osCreateQueue();
-    if (taskQueue == NULL) {//ERROORRRREE
+    if (tp->taskQueue == NULL) {//ERROORRRREE
         printf("bug5");
         return NULL;
     }
     tp->numOfThreads = numOfThreads;
-    if (pthread_cont_init(&(tp->cond_taskQueueNotEmpty), NULL)) {//ERROORRRREE
+    if (pthread_cond_init(&(tp->cond_taskQueueNotEmpty), NULL)) {//ERROORRRREE
         printf("bug6");
         return NULL;
     }
@@ -63,7 +65,7 @@ ThreadPool *tpCreate(int numOfThreads) {
         printf("bug7");
         return NULL;
     }
-    if (pthread_mutexattr_setkind_np(&mutexattr_t, PTHREAD_MUTEX_ERRORCHECK)) {//ERROORRRREE
+    if (pthread_mutexattr_settype(&mutexattr_t, PTHREAD_MUTEX_ERRORCHECK)) {//ERROORRRREE
         printf("bug8");
         return NULL;
     }
@@ -84,7 +86,8 @@ ThreadPool *tpCreate(int numOfThreads) {
         printf("bug11.5");
         return NULL;
     }
-    for (int i = 0; i < numOfThreads; ++i) {
+    int i;
+    for (i = 0; i < numOfThreads; ++i) {
         pthread_t x;
         if (pthread_create(&x, NULL, getAndExecuteTasksForever, (void *) tp)) {//ERROORRRREE
             printf("bug12.%d", i);
@@ -109,7 +112,8 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
         }
 
     }
-    for(int i = 0 ; i < tp->numOfThreads ; ++i){
+    int i;
+    for(i = 0 ; i < tp->numOfThreads ; ++i){
         FuncAndParam fap;
         fap.function = selfDestruct;
         osEnqueue(tp->taskQueue, &fap);
@@ -119,7 +123,7 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
         return;//TODO think about this
     }
 
-    for(int i = 0 ; i < tp->numOfThreads ; ++i){
+    for(i = 0 ; i < tp->numOfThreads ; ++i){
         pthread_join((tp->threadIdArray)[i], NULL);
     }
     free(tp);
