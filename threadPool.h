@@ -3,6 +3,7 @@
 
 #include "osqueue.h"
 #include <pthread.h>
+#include <semaphore.h>
 
 typedef struct thread_pool {
     //region wet3 max
@@ -10,8 +11,8 @@ typedef struct thread_pool {
     pthread_mutex_t mutex_taskQueue_lock;
     pthread_cond_t cond_taskQueueNotEmpty;
     int numOfThreads;
-    bool tpDestroyInvoked;
-    pthread_mutex_t mutex_Destructor;
+    sem_t sem_tpDestroyWasInvoked;
+    pthread_t* threadIdArray;
     //endregion
 } ThreadPool;
 

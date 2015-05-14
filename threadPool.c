@@ -1,38 +1,39 @@
 //wet3 - entire file
 #include "threadPool.h"
-#define FALSE 0
 
-typedef void (*funcPtr)(void *);//writing " void (*computeFunc)(void *) " is now the same as writing " funcPtr computeFunc "
-typedef struct funcAndParam{
+typedef void (*funcPtr)(void *);
+
+//writing " void (*computeFunc)(void *) " is now the same as writing " funcPtr computeFunc "
+typedef struct funcAndParam {
     funcPtr function;
-    void* param;
-}FuncAndParam;
+    void *param;
+} FuncAndParam;
 //task queue's member would be a pointer to this struct
 //call would look like that: " function(param); "
 
-void selfDestruct(void* addressOfSelfDestructQueueMember){
-    free(addressOfSelfDestructQueueMember);
-    exit(0);
+void selfDestruct(void *) {
+    pthread_exit(NULL);
 }
-void* getAndExecuteTasksForever(void* voidPtrTP){
-    ThreadPool* tp = (ThreadPool*)voidPtrTP;
+
+void *getAndExecuteTasksForever(void *voidPtrTP) {
+    ThreadPool *tp = (ThreadPool *) voidPtrTP;
     while (1) {
-        if(pthread_mutex_lock(&(tp->mutex_taskQueue_lock))){//ERROORRRREE
+        if (pthread_mutex_lock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
             printf("bug1");
             return;
         }
-        while(osIsQueueEmpty(tp->taskQueue)){
-            if(pthread_cond_wait(&(tp->cond_taskQueueNotEmpty), &(tp->mutex_taskQueue_lock))){//ERROORRRREE
+        while (osIsQueueEmpty(tp->taskQueue)) {
+            if (pthread_cond_wait(&(tp->cond_taskQueueNotEmpty), &(tp->mutex_taskQueue_lock))) {//ERROORRRREE
                 printf("bug2");
                 return;
             }
         }
-        void* FAPAddress = (osDequeue(tp->taskQueue));
-        if(pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))){//ERROORRRREE
+        void *FAPAddress = (osDequeue(tp->taskQueue));
+        if (pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
             printf("bug3");
             return;
         }
-        FuncAndParam FAP = (FuncAndParam)(*FAPAddress);
+        FuncAndParam FAP = (FuncAndParam) (*FAPAddress);
         FAP.function(FAP.param);
         free(FAPAddress);
 
@@ -41,25 +42,24 @@ void* getAndExecuteTasksForever(void* voidPtrTP){
 }
 
 
-ThreadPool *tpCreate(int numOfThreads){
-    if(numOfThreads<1){//ERROORRRREE
+ThreadPool *tpCreate(int numOfThreads) {
+    if (numOfThreads < 1) {//ERROORRRREE
         printf("bug4");
         return NULL;
     }
-    ThreadPool* tp = malloc(sizeof(*ThreadPool));
+    ThreadPool *tp = malloc(sizeof(*ThreadPool));
     tp->taskQueue = osCreateQueue();
-    if(taskQueue == NULL){//ERROORRRREE
+    if (taskQueue == NULL) {//ERROORRRREE
         printf("bug5");
         return NULL;
     }
-    tp->tpDestroyInvoked = FALSE;
     tp->numOfThreads = numOfThreads;
-    if(pthread_cont_init(&(tp->cond_taskQueueNotEmpty), NULL)){//ERROORRRREE
+    if (pthread_cont_init(&(tp->cond_taskQueueNotEmpty), NULL)) {//ERROORRRREE
         printf("bug6");
         return NULL;
     }
     pthread_mutexattr_t mutexattr_t;
-    if(pthread_mutexattr_init(&mutexattr_t)){//ERROORRRREE
+    if (pthread_mutexattr_init(&mutexattr_t)) {//ERROORRRREE
         printf("bug7");
         return NULL;
     }
@@ -67,48 +67,88 @@ ThreadPool *tpCreate(int numOfThreads){
         printf("bug8");
         return NULL;
     }
-    if(pthread_mutex_init(&(tp->mutex_taskQueue_lock),&mutexattr_t)){//ERROORRRREE
+    if (pthread_mutex_init(&(tp->mutex_taskQueue_lock), &mutexattr_t)) {//ERROORRRREE
         printf("bug9");
         return NULL;
     }
-    if(pthread_mutex_init(&(tp->mutex_Destructor),&mutexattr_t)){//ERROORRRREE
+    if (pthread_mutexattr_destroy(&mutexattr_t)) {//ERROORRRREE
         printf("bug10");
         return NULL;
     }
-    if(pthread_mutexattr_destroy(&mutexattr_t)){//ERROORRRREE
+    if (sem_init(&(tp->sem_tpDestroyWasInvoked), 0, 1)) {//ERROORRRREE
         printf("bug11");
         return NULL;
     }
-    for(int i=0; i<numOfThreads; ++i){
+    tp->threadIdArray = malloc(sizeof(pthread_t)*numOfThreads);
+    if(!(tp->threadIdArray)){//ERROORRRREE
+        printf("bug11.5");
+        return NULL;
+    }
+    for (int i = 0; i < numOfThreads; ++i) {
         pthread_t x;
-        if(pthread_create(&x, NULL, getAndExecuteTasksForever, (void*)tp)){//ERROORRRREE
-            printf("bug12.%d",i);
+        if (pthread_create(&x, NULL, getAndExecuteTasksForever, (void *) tp)) {//ERROORRRREE
+            printf("bug12.%d", i);
             return NULL;
         }
+        (tp->threadIdArray)[i] = x;
     }
     return tp;
 }
 
-void tpDestroy(ThreadPool *threadPool, int shouldWaitForTasks){}
+void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
+    if(sem_trywait(&(tp->sem_tpDestroyWasInvoked))){//we are already during destruction
+        return;
+    }
+    if (pthread_mutex_lock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
+        printf("bug18");
+        return;//TODO think about this
+    }
+    if(shouldWaitForTasks==0){
+        while(!(osIsQueueEmpty(tp->taskQueue))){
+            free(osDequeue(tp->taskQueue));
+        }
 
-int tpInsertTask(ThreadPool *tp, void (*computeFunc)(void *), void *param){
-    if(tp->tpDestroyInvoked){
-        return -1;
     }
-    if(pthread_mutex_lock(&(tp->mutex_taskQueue_lock))){//ERROORRRREE
-        printf("bug13");
-        return -1;//TODO think about this
+    for(int i = 0 ; i < tp->numOfThreads ; ++i){
+        FuncAndParam fap;
+        fap.function = selfDestruct;
+        osEnqueue(tp->taskQueue, &fap);
     }
-    FuncAndParam* fap = malloc(sizeof(*fap));
-    fap->function = computeFunc;
-    fap->param = param;
-    osEnqueue(tp->taskQueue, (*void)fap);
-    if(pthread_cond_signal(&(tp->cond_taskQueueNotEmpty)){//ERROORRRREE
+    if (pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
+        printf("bug19");
+        return;//TODO think about this
+    }
+
+    for(int i = 0 ; i < tp->numOfThreads ; ++i){
+        pthread_join((tp->threadIdArray)[i], NULL);
+    }
+    free(tp);
+
+}
+
+int tpInsertTask(ThreadPool *tp, void (*computeFunc)(void *), void *param) {
+    int tpDestroyWasInvoked;
+    if (sem_getvalue(&(tp->sem_tpDestroyWasInvoked), &tpDestroyWasInvoked)) {//ERROORRRREE
         printf("bug14");
         return -1;//TODO think about this
     }
-    if(pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))){//ERROORRRREE
+    if (tpDestroyWasInvoked == 0) {
+        return -1;//means that tpDestroy was invoked
+    }
+    if (pthread_mutex_lock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
+        printf("bug13");
+        return -1;//TODO think about this
+    }
+    FuncAndParam *fap = malloc(sizeof(*fap));
+    fap->function = computeFunc;
+    fap->param = param;
+    osEnqueue(tp->taskQueue, (void *) fap);
+    if (pthread_cond_signal(&(tp->cond_taskQueueNotEmpty))) {//ERROORRRREE
         printf("bug15");
+        return -1;//TODO think about this
+    }
+    if (pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
+        printf("bug16");
         return -1;//TODO think about this
     }
     return 0;
