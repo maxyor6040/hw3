@@ -131,11 +131,16 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
         printf("bug19");
         return;//TODO think about this
     }
-
     for(i = 0 ; i < tp->numOfThreads ; ++i){
-        pthread_join((tp->threadIdArray)[i], NULL);
+        if((tp->threadIdArray)[i]==elDestroyador){
+            flagCurrentIsThread = 1;
+        }else{
+            pthread_join((tp->threadIdArray)[i], NULL);
+        }
     }
     free(tp);
+        pthread_exit(NULL);
+    }
 
 }
 
