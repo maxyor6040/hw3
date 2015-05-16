@@ -119,7 +119,7 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
         osEnqueue(tp->taskQueue, &fap);
         if (pthread_cond_signal(&(tp->cond_taskQueueNotEmpty))) {//ERROORRRREE
             printf("bug20");
-            return -1;//TODO think about this
+            return;//TODO think about this
         }
     }
     if (pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
