@@ -131,6 +131,8 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
         printf("bug19");
         return;//TODO think about this
     }
+    int elDestroyador = getpid();//id of the process that invoked tpDestroy
+    int flagCurrentIsThread = 0;//true iff the process that invoked tpDestroy is one of the threads
     for(i = 0 ; i < tp->numOfThreads ; ++i){
         if((tp->threadIdArray)[i]==elDestroyador){
             flagCurrentIsThread = 1;
@@ -139,6 +141,7 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
         }
     }
     free(tp);
+    if(flagCurrentIsThread){//if the process that invoked tpDestroy is one of the threads
         pthread_exit(NULL);
     }
 
