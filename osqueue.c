@@ -28,6 +28,10 @@ int osIsQueueEmpty(OSQueue *q) {
 void osEnqueue(OSQueue *q, void *data) {
     OSNode *node = malloc(sizeof(OSNode));
 
+    if (node == NULL){
+        printf("the queue fucks memory\n");
+        return;
+    }
 
     node->data = data;
     node->next = NULL;

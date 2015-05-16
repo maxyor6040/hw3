@@ -35,6 +35,7 @@ void* getAndExecuteTasksForever(void *voidPtrTP) {
             printf("bug3");
             return NULL;
         }
+        printf("[pid:%d]\n", getpid());
         FuncAndParam FAP = *((FuncAndParam*)FAPAddress);
         FAP.function(FAP.param);
         free(FAPAddress);
@@ -50,6 +51,10 @@ ThreadPool *tpCreate(int numOfThreads) {
         return NULL;
     }
     ThreadPool *tp = malloc(sizeof(*tp));
+    if(!tp){
+        printf("bug4.5");
+        return NULL;
+    }
     tp->taskQueue = osCreateQueue();
     if (tp->taskQueue == NULL) {//ERROORRRREE
         printf("bug5");
@@ -148,6 +153,10 @@ int tpInsertTask(ThreadPool *tp, void (*computeFunc)(void *), void *param) {
         return -1;//TODO think about this
     }
     FuncAndParam *fap = malloc(sizeof(*fap));
+    if(!fap){
+        printf("bug14");
+        return -1;
+    }
     fap->function = computeFunc;
     fap->param = param;
     osEnqueue(tp->taskQueue, (void *) fap);
