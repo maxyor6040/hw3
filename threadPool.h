@@ -13,6 +13,7 @@ typedef struct thread_pool {
     int numOfThreads;
     sem_t sem_tpDestroyWasInvoked;
     pthread_t* threadIdArray;
+    int tpDestroyNeedsLock;
     //endregion
 } ThreadPool;
 
