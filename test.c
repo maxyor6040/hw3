@@ -7,7 +7,7 @@
 void hello(void *a) {
     //printf("hello\n");
     double i;
-    for(i=0; i<100000; i+=0.0025);
+    //for(i=0; i<100000; i+=0.0025);
 }
 
 
@@ -16,7 +16,7 @@ void test_thread_pool_sanity() {
 
     ThreadPool *tp = tpCreate(5);
 
-    for (i = 0; i < 100; ++i) {
+    for (i = 0; i < 2147483647; ++i) {
         tpInsertTask(tp, hello, NULL);
     }
 

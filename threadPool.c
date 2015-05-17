@@ -35,7 +35,7 @@ void* getAndExecuteTasksForever(void *voidPtrTP) {
             printf("bug3");
             return NULL;
         }
-        printf("[pid:%d]\n", getpid());
+        //printf("[pid:%d]\n", getpid());
         FuncAndParam FAP = *((FuncAndParam*)FAPAddress);
         FAP.function(FAP.param);
         free(FAPAddress);
