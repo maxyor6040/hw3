@@ -24,7 +24,7 @@ void* getAndExecuteTasksForever(void *voidPtrTP) {
             printf("bug1");
             return NULL;
         }
-        while (osIsQueueEmpty(tp->taskQueue)) {
+        while (osIsQueueEmpty(tp->taskQueue) || tp->tpDestroyNeedsLock==1) {
             if (pthread_cond_wait(&(tp->cond_taskQueueNotEmpty), &(tp->mutex_taskQueue_lock))) {//ERROORRRREE
                 printf("bug2");
                 return NULL;
@@ -37,8 +37,8 @@ void* getAndExecuteTasksForever(void *voidPtrTP) {
         }
         //printf("[pid:%d]\n", getpid());
         FuncAndParam FAP = *((FuncAndParam*)FAPAddress);
-        FAP.function(FAP.param);
         free(FAPAddress);
+        FAP.function(FAP.param);
 
     }
 
@@ -91,6 +91,7 @@ ThreadPool *tpCreate(int numOfThreads) {
         printf("bug11.5");
         return NULL;
     }
+    tp->tpDestroyNeedsLock = 0;
     int i;
     for (i = 0; i < numOfThreads; ++i) {
         pthread_t x;
@@ -107,6 +108,7 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
     if(sem_trywait(&(tp->sem_tpDestroyWasInvoked))){//we are already during destruction
         return;
     }
+    tp->tpDestroyNeedsLock = 1;
     if (pthread_mutex_lock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
         printf("bug18");
         return;//TODO think about this
@@ -115,17 +117,18 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
         while(!(osIsQueueEmpty(tp->taskQueue))){
             free(osDequeue(tp->taskQueue));
         }
-
     }
     int i;
     for(i = 0 ; i < tp->numOfThreads ; ++i){
-        FuncAndParam fap;
-        fap.function = selfDestruct;
-        osEnqueue(tp->taskQueue, &fap);
-        if (pthread_cond_signal(&(tp->cond_taskQueueNotEmpty))) {//ERROORRRREE
-            printf("bug20");
-            return;//TODO think about this
-        }
+        FuncAndParam* fap = malloc(sizeof(*fap));
+        fap->function = selfDestruct;
+        fap->param = NULL;
+        osEnqueue(tp->taskQueue, (void*)fap);
+    }
+    tp->tpDestroyNeedsLock = 0;
+    if (pthread_cond_broadcast(&(tp->cond_taskQueueNotEmpty))) {//ERROORRRREE
+        printf("bug20");
+        return;//TODO think about this
     }
     if (pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
         printf("bug19");
@@ -140,17 +143,33 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
             pthread_join((tp->threadIdArray)[i], NULL);
         }
     }
+    while(!(osIsQueueEmpty(tp->taskQueue))){
+        free(osDequeue(tp->taskQueue));
+    }
+    osDestroyQueue(tp->taskQueue);
+    if (pthread_cond_destroy(&(tp->cond_taskQueueNotEmpty))) {//ERROORRRREE
+        printf("bug20");
+        return NULL;
+    }
+    if (pthread_mutex_destroy(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
+        printf("bug21");
+        return NULL;
+    }
+    if (sem_destroy(&(tp->sem_tpDestroyWasInvoked))) {//ERROORRRREE
+        printf("bug22");
+        return NULL;
+    }
+    free(tp->threadIdArray);
     free(tp);
     if(flagCurrentIsThread){//if the process that invoked tpDestroy is one of the threads
         pthread_exit(NULL);
     }
-
 }
 
 int tpInsertTask(ThreadPool *tp, void (*computeFunc)(void *), void *param) {
     int tpDestroyWasInvoked;
     if (sem_getvalue(&(tp->sem_tpDestroyWasInvoked), &tpDestroyWasInvoked)) {//ERROORRRREE
-        printf("bug14");
+        printf("bug14.0");
         return -1;//TODO think about this
     }
     if (tpDestroyWasInvoked == 0) {
@@ -160,9 +179,18 @@ int tpInsertTask(ThreadPool *tp, void (*computeFunc)(void *), void *param) {
         printf("bug13");
         return -1;//TODO think about this
     }
+    if (sem_getvalue(&(tp->sem_tpDestroyWasInvoked), &tpDestroyWasInvoked)) {//ERROORRRREE
+        printf("bug14.1");
+        return -1;//TODO think about this
+    }
+    if (tpDestroyWasInvoked == 0) {
+        return -1;//means that tpDestroy was invoked
+    }
+
+
     FuncAndParam *fap = malloc(sizeof(*fap));
     if(!fap){
-        printf("bug14");
+        printf("bug14.2");
         return -1;
     }
     fap->function = computeFunc;
