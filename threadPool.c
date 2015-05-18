@@ -149,15 +149,15 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
     osDestroyQueue(tp->taskQueue);
     if (pthread_cond_destroy(&(tp->cond_taskQueueNotEmpty))) {//ERROORRRREE
         printf("bug20");
-        return NULL;
+        return;
     }
     if (pthread_mutex_destroy(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
         printf("bug21");
-        return NULL;
+        return;
     }
     if (sem_destroy(&(tp->sem_tpDestroyWasInvoked))) {//ERROORRRREE
         printf("bug22");
-        return NULL;
+        return;
     }
     free(tp->threadIdArray);
     free(tp);
