@@ -24,7 +24,7 @@ void* getAndExecuteTasksForever(void *voidPtrTP) {
             printf("bug1");
             return NULL;
         }
-        while (osIsQueueEmpty(tp->taskQueue) || tp->tpDestroyNeedsLock) {
+        while (osIsQueueEmpty(tp->taskQueue)) {
             if (pthread_cond_wait(&(tp->cond_taskQueueNotEmpty), &(tp->mutex_taskQueue_lock))) {//ERROORRRREE
                 printf("bug2");
                 return NULL;
@@ -37,12 +37,13 @@ void* getAndExecuteTasksForever(void *voidPtrTP) {
         }
         //printf("[pid:%d]\n", getpid());
         FuncAndParam FAP = *((FuncAndParam*)FAPAddress);
-        free(FAPAddress);
         FAP.function(FAP.param);
+        free(FAPAddress);
 
     }
 
 }
+
 
 ThreadPool *tpCreate(int numOfThreads) {
     if (numOfThreads < 1) {//ERROORRRREE
@@ -90,7 +91,6 @@ ThreadPool *tpCreate(int numOfThreads) {
         printf("bug11.5");
         return NULL;
     }
-    tp->tpDestroyNeedsLock = 0;//tpDestroy wasn't invoked yet so by default this is FALSE
     int i;
     for (i = 0; i < numOfThreads; ++i) {
         pthread_t x;
@@ -107,7 +107,6 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
     if(sem_trywait(&(tp->sem_tpDestroyWasInvoked))){//we are already during destruction
         return;
     }
-    tp->tpDestroyNeedsLock = 1;//set to TRUE in order to make sure tpDestroy get's the lock ASAP
     if (pthread_mutex_lock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
         printf("bug18");
         return;//TODO think about this
@@ -123,12 +122,11 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
         FuncAndParam fap;
         fap.function = selfDestruct;
         osEnqueue(tp->taskQueue, &fap);
+        if (pthread_cond_signal(&(tp->cond_taskQueueNotEmpty))) {//ERROORRRREE
+            printf("bug20");
+            return;//TODO think about this
+        }
     }
-    if (pthread_cond_broadcast(&(tp->cond_taskQueueNotEmpty))) {//ERROORRRREE
-        printf("bug20");
-        return;//TODO think about this
-    }
-    tp->tpDestroyNeedsLock = 0;//set to FALSE because we finished with the lock
     if (pthread_mutex_unlock(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
         printf("bug19");
         return;//TODO think about this
@@ -142,27 +140,7 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
             pthread_join((tp->threadIdArray)[i], NULL);
         }
     }
-
-    while(!(osIsQueueEmpty(tp->taskQueue))){//empty queue again just in case
-        free(osDequeue(tp->taskQueue));
-    }
-    osDestroyQueue(tp->taskQueue);
-    free(tp->threadIdArray);
-    if (pthread_cond_destroy(&(tp->cond_taskQueueNotEmpty))) {//ERROORRRREE
-        printf("bug21");
-        return;
-    }
-    if (pthread_mutex_destroy(&(tp->mutex_taskQueue_lock))) {//ERROORRRREE
-        printf("bug22");
-        return;
-    }
-    if (sem_destroy(&(tp->sem_tpDestroyWasInvoked))) {//ERROORRRREE
-        printf("bug23");
-        return;
-    }
-
     free(tp);
-
     if(flagCurrentIsThread){//if the process that invoked tpDestroy is one of the threads
         pthread_exit(NULL);
     }
@@ -172,7 +150,7 @@ void tpDestroy(ThreadPool *tp, int shouldWaitForTasks) {
 int tpInsertTask(ThreadPool *tp, void (*computeFunc)(void *), void *param) {
     int tpDestroyWasInvoked;
     if (sem_getvalue(&(tp->sem_tpDestroyWasInvoked), &tpDestroyWasInvoked)) {//ERROORRRREE
-        printf("bug14.0");
+        printf("bug14");
         return -1;//TODO think about this
     }
     if (tpDestroyWasInvoked == 0) {
@@ -182,18 +160,9 @@ int tpInsertTask(ThreadPool *tp, void (*computeFunc)(void *), void *param) {
         printf("bug13");
         return -1;//TODO think about this
     }
-
-    if (sem_getvalue(&(tp->sem_tpDestroyWasInvoked), &tpDestroyWasInvoked)) {//ERROORRRREE
-        printf("bug14.1");
-        return -1;//TODO think about this
-    }
-    if (tpDestroyWasInvoked == 0) {//checking again in case we waited for the lock and in the and by the time we got the lock tpDestroy was invoked
-        return -1;//means that tpDestroy was invoked
-    }
-
     FuncAndParam *fap = malloc(sizeof(*fap));
     if(!fap){
-        printf("bug14.2");
+        printf("bug14");
         return -1;
     }
     fap->function = computeFunc;
