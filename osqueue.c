@@ -29,7 +29,7 @@ void osEnqueue(OSQueue *q, void *data) {
     OSNode *node = malloc(sizeof(OSNode));
 
     if (node == NULL){
-        printf("the queue fucks memory\n");
+        //the queue fucks memory
         return;
     }
 
